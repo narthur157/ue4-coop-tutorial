@@ -33,7 +33,7 @@ void ASGrenadeWeapon::Fire() {
 
 		FActorSpawnParameters ActorSpawnParams;
 		ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-		ActorSpawnParams.Instigator = Cast<APawn>(GetOwner());
+		ActorSpawnParams.Instigator = Instigator ? Instigator : Cast<APawn>(GetOwner());
 		
 		if (Role == ROLE_Authority)
 		{

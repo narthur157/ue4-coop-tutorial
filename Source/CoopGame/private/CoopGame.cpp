@@ -4,3 +4,6 @@
 #include "Modules/ModuleManager.h"
 
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, CoopGame, "CoopGame" );
+
+DEFINE_LOG_CATEGORY(LogHordeMode);
+DEFINE_LOG_CATEGORY(LogTrackerBot);

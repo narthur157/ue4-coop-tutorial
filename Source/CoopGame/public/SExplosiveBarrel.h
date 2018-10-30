@@ -48,7 +48,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Explosion")
 	float ImpulseStrength;
 
-	UPROPERTY(VisibleAnywhere, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	UStaticMeshComponent* MeshComp;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Explosion")

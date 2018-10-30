@@ -83,6 +83,7 @@ void ASCharacter::SetupWeapon_Implementation()
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnParams.Instigator = this;
 
 	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(SelectedWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
 
@@ -113,7 +114,10 @@ TSubclassOf<ASWeapon> ASCharacter::GetNextWeaponClass()
 	}
 	else
 	{
-		SelectedWeaponClass = AvailableWeapons[0];
+		if (ensure(AvailableWeapons.Num() > 0))
+		{
+			SelectedWeaponClass = AvailableWeapons[0];
+		}
 	}
 
 	return SelectedWeaponClass;

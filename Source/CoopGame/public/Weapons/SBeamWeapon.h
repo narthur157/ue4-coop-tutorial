@@ -5,6 +5,7 @@
 #include "SBeamWeapon.generated.h"
 
 class UParticleSystem;
+class UParticleSystemComponent;
 
 USTRUCT(BlueprintType)
 struct FBeamStatus

@@ -11,6 +11,7 @@
 #include "Components/SphereComponent.h"
 #include "Sound/SoundCue.h"
 #include "SCountNearbyActorComponent.h"
+#include "CoopGame.h"
 
 ASTrackerBot::ASTrackerBot(const FObjectInitializer& ObjectInitializer)
  : Super (ObjectInitializer) {
@@ -40,7 +41,7 @@ ASTrackerBot::ASTrackerBot(const FObjectInitializer& ObjectInitializer)
 
 	DamageSphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("DamageSphereComp"));
 	DamageSphereComp->SetSphereRadius(DamageRadius - 100.0f);
-	//DamageSphereComp->SetupAttachment(MeshComp);
+	DamageSphereComp->SetupAttachment(MeshComp);
 	DamageSphereComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	DamageSphereComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 	DamageSphereComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
@@ -66,7 +67,7 @@ void ASTrackerBot::BeginPlay()
 	if (Role == ROLE_Authority)
 	{
 		FVector NextPoint = GetNextPathPoint();
-		//DrawDebugSphere(GetWorld(), NextPoint, 50, 12, FColor::Orange, false, 3.0f, 0, 1);
+		// DrawDebugSphere(GetWorld(), NextPoint, 50, 12, FColor::Orange, false, 3.0f, 0, 1);
 	}
 
 	if (MatInst == nullptr)
@@ -105,11 +106,12 @@ void ASTrackerBot::Tick(float DeltaTime)
 
 			ForceDirection *= MovementForce;
 			MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
-			//DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Green, false, 0);
+			
+			// DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Green, false, 0);
 		}
 
 
-		//DrawDebugSphere(GetWorld(), NextPathPoint, RequiredDistanceToTarget, 12, FColor::Yellow, false, 0, 3.0f);
+		// DrawDebugSphere(GetWorld(), NextPathPoint, RequiredDistanceToTarget, 12, FColor::Yellow, false, 0, 3.0f);
 	}
 }
 
@@ -136,7 +138,7 @@ void ASTrackerBot::SelfDestruct()
 	UGameplayStatics::PlaySoundAtLocation(GetWorld(), ExplodeSound, GetActorLocation());
 
 	MeshComp->SetVisibility(false, true);
-	MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 
 	if (Role == ROLE_Authority)
 	{
@@ -147,12 +149,12 @@ void ASTrackerBot::SelfDestruct()
 
 		UGameplayStatics::ApplyRadialDamage(this, Damage, GetActorLocation(), DamageRadius, nullptr, IgnoredActors, this, GetInstigatorController(), true);
 		
+		MeshComp->SetSimulatePhysics(false);
 		MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		SetLifeSpan(2.0f);
 	}
 
-	//	DrawDebugSphere(GetWorld(), GetActorLocation(), DamageRadius, 12, FColor::Red, false, 3.0f);
-
+	// DrawDebugSphere(GetWorld(), GetActorLocation(), DamageRadius, 12, FColor::Red, false, 3.0f);
 }
 
 void ASTrackerBot::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
@@ -200,12 +202,15 @@ void ASTrackerBot::HandleTakeDamage(USHealthComponent* OwningHealthComp, float H
 
 FVector ASTrackerBot::GetNextPathPoint()
 {
-	ACharacter* PlayerPawn = UGameplayStatics::GetPlayerCharacter(this, 0);
+	ACharacter* PlayerPawn = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 
 	if (PlayerPawn) {
-		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this, GetActorLocation(), PlayerPawn);
+		FVector PawnLoc = PlayerPawn->GetActorLocation();
+		//PawnLoc.Z = GetActorLocation().Z;
 
-		if (NavPath->PathPoints.Num() > 1)
+		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(), GetActorLocation(), PawnLoc);
+
+		if (NavPath && NavPath->PathPoints.Num() > 1)
 		{
 			LastNavCalcTime = GetWorld()->TimeSeconds;
 			// DrawDebugSphere(GetWorld(), NavPath->PathPoints[1], 50, 12, FColor::Blue, false, 3.0f, 0, 1);
@@ -213,7 +218,7 @@ FVector ASTrackerBot::GetNextPathPoint()
 		}
 	}
 	
-	// UE_LOG(LogTemp, Warning, TEXT("STrackerBot GetNextPathPoint could not find PlayerPawn or NavPath only had 1 element"));
+	UE_LOG(LogTrackerBot, Warning, TEXT("STrackerBot GetNextPathPoint could not find PlayerPawn or NavPath only had 1 element"));
 
 	return GetActorLocation();
 }
