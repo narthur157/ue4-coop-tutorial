@@ -36,7 +36,7 @@ protected:
 	void DamageSelf();
 
 	FTimerHandle TimerHandle_SelfDamage;
-
+	FTimerHandle TimerHandle_RefreshPath;
 
 	float LastNavCalcTime;
 
@@ -87,7 +87,11 @@ protected:
 
 	UMaterialInstanceDynamic* MatInst;
 
+	UFUNCTION()
 	FVector GetNextPathPoint();
+
+	UFUNCTION()
+	void RefreshPath();
 
 	FVector NextPathPoint;
 

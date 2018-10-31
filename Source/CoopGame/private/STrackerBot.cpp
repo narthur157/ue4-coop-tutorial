@@ -13,6 +13,14 @@
 #include "SCountNearbyActorComponent.h"
 #include "CoopGame.h"
 
+static int32 DebugTrackerBotDrawing = 0;
+FAutoConsoleVariableRef CVARDebugTrackerBotDrawing(
+	TEXT("COOP.TrackerBotDrawing"),
+	DebugTrackerBotDrawing,
+	TEXT("Draw debug objects"),
+	ECVF_Cheat);
+
+
 ASTrackerBot::ASTrackerBot(const FObjectInitializer& ObjectInitializer)
  : Super (ObjectInitializer) {
 	PrimaryActorTick.bCanEverTick = true;
@@ -67,7 +75,10 @@ void ASTrackerBot::BeginPlay()
 	if (Role == ROLE_Authority)
 	{
 		FVector NextPoint = GetNextPathPoint();
-		// DrawDebugSphere(GetWorld(), NextPoint, 50, 12, FColor::Orange, false, 3.0f, 0, 1);
+		if (DebugTrackerBotDrawing)
+		{
+			DrawDebugSphere(GetWorld(), NextPoint, 50, 12, FColor::Orange, false, 3.0f, 0, 1);
+		}
 	}
 
 	if (MatInst == nullptr)
@@ -84,12 +95,14 @@ void ASTrackerBot::Tick(float DeltaTime)
 	{
 		float DistanceToTarget = (GetActorLocation() - NextPathPoint).Size();
 
-		float TimeSinceNavCalc = GetWorld()->TimeSeconds - LastNavCalcTime;
-
-		if (DistanceToTarget <= RequiredDistanceToTarget || TimeSinceNavCalc > NavRecalcInterval)
+		if (DistanceToTarget <= RequiredDistanceToTarget)
 		{
 			NextPathPoint = GetNextPathPoint();
-			//DrawDebugString(GetWorld(), GetActorLocation(), "Tracer Reached!");
+
+			if (DebugTrackerBotDrawing)
+			{
+				DrawDebugString(GetWorld(), GetActorLocation(), "Tracer Reached!");
+			}
 		}
 
 		FVector ForceDirection = NextPathPoint - GetActorLocation();
@@ -107,11 +120,17 @@ void ASTrackerBot::Tick(float DeltaTime)
 			ForceDirection *= MovementForce;
 			MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
 			
-			// DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Green, false, 0);
+			if (DebugTrackerBotDrawing)
+			{
+				DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Green, false, 0);
+			}
 		}
 
 
-		// DrawDebugSphere(GetWorld(), NextPathPoint, RequiredDistanceToTarget, 12, FColor::Yellow, false, 0, 3.0f);
+		if (DebugTrackerBotDrawing)
+		{
+			DrawDebugSphere(GetWorld(), NextPathPoint, RequiredDistanceToTarget, 12, FColor::Yellow, false, 0, 3.0f);
+		}
 	}
 }
 
@@ -154,7 +173,10 @@ void ASTrackerBot::SelfDestruct()
 		SetLifeSpan(2.0f);
 	}
 
-	// DrawDebugSphere(GetWorld(), GetActorLocation(), DamageRadius, 12, FColor::Red, false, 3.0f);
+	if (DebugTrackerBotDrawing)
+	{
+		DrawDebugSphere(GetWorld(), GetActorLocation(), DamageRadius, 12, FColor::Red, false, 3.0f);
+	}
 }
 
 void ASTrackerBot::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
@@ -166,7 +188,7 @@ void ASTrackerBot::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 
 	ASCharacter* PlayerPawn = Cast<ASCharacter>(OtherActor);
 
-	if (PlayerPawn)
+	if (PlayerPawn && !USHealthComponent::IsFriendly(OtherActor, this))
 	{
 		if (Role == ROLE_Authority)
 		{
@@ -202,17 +224,41 @@ void ASTrackerBot::HandleTakeDamage(USHealthComponent* OwningHealthComp, float H
 
 FVector ASTrackerBot::GetNextPathPoint()
 {
-	ACharacter* PlayerPawn = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+	AActor* BestTarget = nullptr;
+	float NearestTargetDistance = FLT_MAX;
 
-	if (PlayerPawn) {
-		FVector PawnLoc = PlayerPawn->GetActorLocation();
+	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; It++)
+	{
+		APawn* TestPawn = It->Get();
 
-		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(), GetActorLocation(), PawnLoc);
+		if (TestPawn == nullptr || USHealthComponent::IsFriendly(TestPawn, this))
+		{
+			continue;
+		}
+
+		USHealthComponent* TestPawnHealthComp = Cast<USHealthComponent>(TestPawn->GetComponentByClass(USHealthComponent::StaticClass()));
+		if (ensure(TestPawnHealthComp) && TestPawnHealthComp->GetHealth() > 0.0f)
+		{
+			float Distance = (TestPawn->GetActorLocation() - GetActorLocation()).Size();
+			if (NearestTargetDistance > Distance)
+			{
+				BestTarget = TestPawn;
+				NearestTargetDistance = Distance;
+			}
+		}
+	}
+
+	if (BestTarget) {
+		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(GetWorld(), GetActorLocation(), BestTarget);
+
+		GetWorldTimerManager().ClearTimer(TimerHandle_RefreshPath);
+		GetWorldTimerManager().SetTimer(TimerHandle_RefreshPath, this, &ASTrackerBot::RefreshPath, NavRecalcInterval, false);
 
 		if (NavPath && NavPath->PathPoints.Num() > 1)
 		{
 			LastNavCalcTime = GetWorld()->TimeSeconds;
-			// DrawDebugSphere(GetWorld(), NavPath->PathPoints[1], 50, 12, FColor::Blue, false, 3.0f, 0, 1);
+			if (DebugTrackerBotDrawing)
+DrawDebugSphere(GetWorld(), NavPath->PathPoints[1], 50, 12, FColor::Blue, false, 3.0f, 0, 1);
 			return NavPath->PathPoints[1];
 		}
 	}
@@ -220,4 +266,9 @@ FVector ASTrackerBot::GetNextPathPoint()
 	UE_LOG(LogTrackerBot, Warning, TEXT("STrackerBot GetNextPathPoint could not find PlayerPawn or NavPath only had 1 element"));
 
 	return GetActorLocation();
+}
+
+void ASTrackerBot::RefreshPath()
+{
+	NextPathPoint = GetNextPathPoint();
 }

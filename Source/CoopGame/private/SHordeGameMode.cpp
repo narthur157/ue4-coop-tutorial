@@ -48,6 +48,8 @@ void ASHordeGameMode::CheckWaveState()
 
 	if (NumBotsToSpawn > 0 || bIsPreparingForWave)
 	{
+		UE_LOG(LogHordeMode, Log, TEXT("Wave still in progress"));
+
 		return;
 	}
 
@@ -64,8 +66,9 @@ void ASHordeGameMode::CheckWaveState()
 
 		USHealthComponent* HealthComp = Cast<USHealthComponent>(TestPawn->GetComponentByClass(USHealthComponent::StaticClass()));
 
-		if (HealthComp && HealthComp->GetHealth() > 0.0f)
+		if (HealthComp && HealthComp->GetHealth() > 0.0f && HealthComp->TeamNum != 0)
 		{
+			UE_LOG(LogHordeMode, Log, TEXT("Bot %s still alive"), *TestPawn->GetName());
 			bIsAnyBotAlive = true;
 			break;
 		}
@@ -73,6 +76,8 @@ void ASHordeGameMode::CheckWaveState()
 
 	if (!bIsAnyBotAlive)
 	{
+		UE_LOG(LogHordeMode, Log, TEXT("All bots dead"));
+
 		PrepareForNextWave();
 	}
 }
