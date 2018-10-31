@@ -38,6 +38,9 @@ protected:
 
 	void BeginPlay() override;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin=0.0f))
+	float BulletSpreadInDegrees;;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	float HitDistance;
 

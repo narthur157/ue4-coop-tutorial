@@ -206,7 +206,6 @@ FVector ASTrackerBot::GetNextPathPoint()
 
 	if (PlayerPawn) {
 		FVector PawnLoc = PlayerPawn->GetActorLocation();
-		//PawnLoc.Z = GetActorLocation().Z;
 
 		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(), GetActorLocation(), PawnLoc);
 

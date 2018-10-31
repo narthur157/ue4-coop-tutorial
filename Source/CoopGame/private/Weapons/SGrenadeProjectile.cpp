@@ -34,9 +34,14 @@ ASGrenadeProjectile::ASGrenadeProjectile()
 
 void ASGrenadeProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	if (!OtherActor)
+	{
+		return;
+	}
+
 	USHealthComponent* OtherHealth = OtherActor->FindComponentByClass<USHealthComponent>();
-	if (OtherActor && OtherActor != this && Cast<APawn>(OtherActor) != Instigator && 
-		OtherHealth)
+
+	if (OtherHealth && OtherActor && OtherActor != this && Cast<APawn>(OtherActor) != Instigator)
 	{
 		Explode();
 	}

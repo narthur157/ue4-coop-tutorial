@@ -22,6 +22,7 @@ ASWeapon::ASWeapon()
 	RateOfFire = 300;
 	BaseDamage = 20.0f;
 	HitDistance = 10000.0f;
+	BulletSpreadInDegrees = 0.0f;
 	MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComp"));
 	RootComponent = MeshComp;
 
@@ -123,6 +124,12 @@ bool ASWeapon::Hitscan(FHitResult& Hit)
 
 		FVector ShotDirection = EyeRot.Vector();
 
+		if (BulletSpreadInDegrees > 0.0f)
+		{
+			float HalfRad = FMath::DegreesToRadians(BulletSpreadInDegrees);
+			ShotDirection = FMath::VRandCone(ShotDirection, HalfRad, HalfRad);
+		}
+
 		FVector TraceEnd = EyeLoc + (ShotDirection * HitDistance);
 
 		FCollisionQueryParams QueryParams;
@@ -179,7 +186,7 @@ void ASWeapon::Fire()
 			FRotator ShotDirection = UKismetMathLibrary::FindLookAtRotation(Hit.TraceStart, Hit.TraceEnd);
 
 			UGameplayStatics::ApplyPointDamage(Hit.GetActor(), ActualDamage, ShotDirection.Vector(),
-				Hit, MyOwner->GetInstigatorController(), this, DamageType);
+				Hit, MyOwner->GetInstigatorController(), MyOwner, DamageType);
 
 			PlayImpactEffect(SurfaceType, Hit.ImpactPoint);
 		}

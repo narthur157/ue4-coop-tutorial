@@ -27,8 +27,7 @@ protected:
 	void DoJump();
 	void BeginZoom();
 	void EndZoom();
-	void StartFire();
-	void StopFire();
+
 	TSubclassOf<ASWeapon> GetNextWeaponClass();
 
 	UFUNCTION()
@@ -74,7 +73,13 @@ protected:
 	UPROPERTY(ReplicatedUsing=PlaySwitchWeaponSound)
 	ASWeapon* CurrentWeapon;
 
-public:	
+public:
+	UFUNCTION(BlueprintCallable, Category = "Player")
+	void StartFire();
+
+	UFUNCTION(BlueprintCallable, Category = "Player")
+	void StopFire();
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
